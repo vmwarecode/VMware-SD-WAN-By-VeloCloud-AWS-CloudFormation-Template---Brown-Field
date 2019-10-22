@@ -30,6 +30,11 @@
       "AllowedValues": ["322", "331"],
       "ConstraintDescription": "Must be one of the following: 322, or 331"
     },
+ "ResourcePrefix" : {
+     "Description" : "Prefix used for naming all resources created by this template",
+     "Type" : "String",
+     "Default" : "velocloud"
+   },
   "ExistingVpc" : {
       "Description" : "Existing VPC ID",
       "Type" : "AWS::EC2::VPC::Id"
@@ -148,7 +153,7 @@
    "VeloCloudEdge": {
      "Type": "AWS::EC2::Instance",
      "Properties": {
-       "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "241"] },
+       "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "322"] },
        "InstanceType": "c4.large",
        "KeyName": {"Ref": "VeloCloudKeyPairName"},
        "Tags": [
