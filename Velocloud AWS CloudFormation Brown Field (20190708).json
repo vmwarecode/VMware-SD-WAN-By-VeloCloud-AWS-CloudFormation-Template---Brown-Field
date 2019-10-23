@@ -154,7 +154,7 @@
      "Type": "AWS::EC2::Instance",
      "Properties": {
        "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "322"] },
-       "InstanceType": "c4.large",
+       "InstanceType": "m5.large",
        "KeyName": {"Ref": "VeloCloudKeyPairName"},
        "Tags": [
          { "Key": "Name", "Value": { "Fn::Join" : ["-", [ { "Ref" : "ResourcePrefix" }, "edge"] ] } },
