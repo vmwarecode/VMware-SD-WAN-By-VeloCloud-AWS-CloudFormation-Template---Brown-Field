@@ -26,28 +26,37 @@
     "SoftwareVersion": {
       "Description": "VeloCloud Virtual Edge Software Version",
       "Type": "String",
-      "Default": "331",
+      "Default": "322",
       "AllowedValues": ["322", "331"],
       "ConstraintDescription": "Must be one of the following: 322, or 331"
     },
- "ResourcePrefix" : {
+    "EC2InstanceType": {
+      "Description": "Throughput and number of NICs dictate instance type",
+      "Type": "String",
+      "Default": "c4.large",
+      "AllowedValues": [
+        "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge",
+        "c5.large", "c5.xlarge", "c5.2xlarge", "c5.4xlarge"
+      ]
+    },
+    "ResourcePrefix" : {
      "Description" : "Prefix used for naming all resources created by this template",
      "Type" : "String",
      "Default" : "velocloud"
-   },
-  "ExistingVpc" : {
+    },
+    "ExistingVpc" : {
       "Description" : "Existing VPC ID",
       "Type" : "AWS::EC2::VPC::Id"
     },
-   "ExistingPrivateSubnet" : {
+    "ExistingPrivateSubnet" : {
       "Description" : "Existing Subnet ID for the LAN side",
       "Type" : "AWS::EC2::Subnet::Id"
     },
-   "ExistingPublicSubnet" : {
+    "ExistingPublicSubnet" : {
       "Description" : "Existing Subnet ID for the WAN side",
       "Type" : "AWS::EC2::Subnet::Id"
     },
-   "VeloCloudEdgeName" : {
+    "VeloCloudEdgeName" : {
      "Description" : "Name of Edge to be deployed",
      "Type" : "String"
    },
@@ -66,99 +75,54 @@
      "Description" : "Orchestrator IP address or hostname (fqdn)",
      "Type" : "String"
    },
-    "GE1IpAddr" : {
-      "Description" : "GE1 IP address (must be in CIDR block for the WAN)",
-      "Type" : "String",
-      "Default" : "10.0.0.253",
-      "AllowedPattern" : "^[0-9\\.]+"
-    },
-    "GE2IpAddr" : {
-      "Description" : "GE2 IP address (must be in CIDR block for the WAN)",
-      "Type" : "String",
-      "Default" : "10.0.0.254",
-      "AllowedPattern" : "^[0-9\\.]+"
-    },
-    "GE3IpAddr" : {
-      "Description" : "GE3 IP address (must be in CIDR block for the LAN)",
-      "Type" : "String",
-      "Default" : "10.0.1.254",
-      "AllowedPattern" : "^[0-9\\.]+"
-    },
    "VeloCloudKeyPairName" : {
      "Description" : "Public/Private Key Name of Edge to be deployed",
-     "Type" : "String"
+     "Type" : "AWS::EC2::KeyPair::KeyName"
    }
  },
  "Resources": {
    "PublicIpAddress": {
      "Type": "AWS::EC2::EIP",
      "Properties": {
-       "Domain": "vpc"
+      "Domain": "vpc"
      }
    },
-    "VceInterfaceGe1": {
+   "VceInterfaceGe1": {
      "Type": "AWS::EC2::NetworkInterface",
      "Properties": {
        "Description": "Management Interface",
-       "SourceDestCheck" : "false",
-       "SubnetId": {
-          "Ref": "ExistingPublicSubnet" },
-          "PrivateIpAddresses": [
-            {
-              "PrivateIpAddress": { "Ref" : "GE1IpAddr" },
-              "Primary": "true"
-            }
-          ],
-       "GroupSet": [
-         { "Ref": "VelocloudWANSecurityGroup" }
-       ]
+       "SourceDestCheck": "false",
+       "SubnetId": { "Ref": "ExistingPublicSubnet" },
+       "GroupSet": [ { "Ref": "VelocloudWANSecurityGroup" } ]
      }
    },
    "VceInterfaceGe2": {
      "Type": "AWS::EC2::NetworkInterface",
      "Properties": {
        "Description": "WAN Interface",
-       "SourceDestCheck" : "false",
-       "SubnetId": {
-          "Ref": "ExistingPublicSubnet" },
-          "PrivateIpAddresses": [
-            {
-              "PrivateIpAddress": { "Ref" : "GE2IpAddr" },
-              "Primary": "true"
-            }
-          ],
-       "GroupSet": [
-         { "Ref": "VelocloudWANSecurityGroup" }
-       ]
+       "SourceDestCheck": "false",
+       "SubnetId": { "Ref": "ExistingPublicSubnet" },
+       "GroupSet": [ { "Ref": "VelocloudWANSecurityGroup" } ]
      }
    },
    "VceInterfaceGe3": {
      "Type": "AWS::EC2::NetworkInterface",
      "Properties": {
        "Description": "LAN Interface",
-       "SourceDestCheck" : "false",
-       "SubnetId": {
-          "Ref": "ExistingPrivateSubnet" },
-          "PrivateIpAddresses": [
-            {
-              "PrivateIpAddress": { "Ref" : "GE3IpAddr" },
-              "Primary": "true"
-            }
-          ],
-       "GroupSet": [
-         { "Ref": "VelocloudLANSecurityGroup" }
-       ]
+       "SourceDestCheck": "false",
+       "SubnetId": { "Ref": "ExistingPrivateSubnet" },
+       "GroupSet": [ { "Ref": "VelocloudLANSecurityGroup" } ]
      }
    },
    "VeloCloudEdge": {
      "Type": "AWS::EC2::Instance",
      "Properties": {
-       "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "322"] },
-       "InstanceType": "c4.large",
+       "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, { "Ref": "SoftwareVersion" }] },
+       "InstanceType": { "Ref" : "EC2InstanceType" },
        "KeyName": {"Ref": "VeloCloudKeyPairName"},
        "Tags": [
-         { "Key": "Name", "Value": { "Fn::Join" : ["-", [ { "Ref" : "ResourcePrefix" }, "edge"] ] } },
-         { "Key": "Owner", "Value": "Velocloud CloudFormation generated" }
+         { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref" : "ResourcePrefix" }, "vEdge"] ] } },
+         { "Key": "Owner", "Value": "Generated with VeloCloud Brownfield CloudFormation Template" }
        ],
        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
          "#cloud-config\n",
@@ -187,18 +151,11 @@
        ]
      }
    },
-   "ElasticIpAssociation": {
+  "ElasticIpAssociation": {
      "Type": "AWS::EC2::EIPAssociation",
      "Properties": {
-       "AllocationId": {
-         "Fn::GetAtt": [
-           "PublicIpAddress",
-           "AllocationId"
-         ]
-       },
-       "NetworkInterfaceId": {
-         "Ref": "VceInterfaceGe2"
-       }
+       "AllocationId": { "Fn::GetAtt": ["PublicIpAddress", "AllocationId"] },
+       "NetworkInterfaceId": { "Ref": "VceInterfaceGe2" }
      }
    },
    "VelocloudWANSecurityGroup": {
@@ -206,18 +163,13 @@
      "Properties": {
        "GroupDescription": "WAN Facing Security Group",
        "VpcId": { "Ref": "ExistingVpc" },
-       "Tags": [
-         {
-           "Key": "Name", "Value": "Virtual Edge Security Group" }
-       ]
+       "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref" : "ResourcePrefix" }, "WAN-SG"] ] } } ]
      }
    },
    "AllowSNMP": {
      "Type": "AWS::EC2::SecurityGroupIngress",
      "Properties": {
-       "GroupId": {
-         "Ref": "VelocloudWANSecurityGroup"
-       },
+       "GroupId": { "Ref": "VelocloudWANSecurityGroup" },
        "IpProtocol": "udp",
        "FromPort": "161",
        "ToPort": "161",
@@ -227,9 +179,7 @@
    "AllowSSH": {
      "Type": "AWS::EC2::SecurityGroupIngress",
      "Properties": {
-       "GroupId": {
-         "Ref": "VelocloudWANSecurityGroup"
-       },
+       "GroupId": { "Ref": "VelocloudWANSecurityGroup" },
        "IpProtocol": "tcp",
        "FromPort": "22",
        "ToPort": "22",
@@ -239,9 +189,7 @@
    "AllowVCMP": {
      "Type": "AWS::EC2::SecurityGroupIngress",
      "Properties": {
-       "GroupId": {
-         "Ref": "VelocloudWANSecurityGroup"
-       },
+       "GroupId": { "Ref": "VelocloudWANSecurityGroup" },
        "IpProtocol": "udp",
        "FromPort": "2426",
        "ToPort": "2426",
@@ -252,29 +200,20 @@
      "Type": "AWS::EC2::SecurityGroup",
      "Properties": {
        "GroupDescription": "LAN Facing Security Group - WARNING: Default is Allow Only ICMP, adjust accordingly for other traffic",
-       "VpcId": {
-         "Ref": "ExistingVpc"
-       },
-       "Tags": [
-         {
-           "Key": "Name",
-           "Value": "Virtual Edge LAN Security Group"
-         }
-       ]
+       "VpcId": { "Ref": "ExistingVpc" },
+       "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref" : "ResourcePrefix" }, "LAN-SG"] ] } } ]
      }
    },
    "AllowLANTraffic": {
      "Type": "AWS::EC2::SecurityGroupIngress",
      "Properties": {
-       "GroupId": {
-         "Ref": "VelocloudLANSecurityGroup"
-       },
+       "GroupId": { "Ref": "VelocloudLANSecurityGroup" },
        "IpProtocol": "icmp",
        "FromPort": "-1",
        "ToPort": "-1",
        "CidrIp": "0.0.0.0/0"
      }
-    }
+   }
  },
- "Description": "VMware SD-WAN by VeloCloud"
+ "Description": "VMware SD-WAN by VeloCloud CloudFormation Template (33120191025BF)"
 }
